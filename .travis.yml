@@ -1,0 +1,12 @@
+language: c
+sudo: false
+services:
+  - docker
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
+script: bash -ex ./.travis-docker.sh
+env:
+  global:
+  - PINS="ppx_graphql:."
+  matrix:
+  - PACKAGE="ppx_graphql" DISTRO="debian-stable" OCAML_VERSION="4.03.0"
+  - PACKAGE="ppx_graphql" DISTRO="fedora-25" OCAML_VERSION="4.04.1"
