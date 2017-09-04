@@ -90,3 +90,14 @@ For use with jbuilder, use the `preprocess`- and `preprocessor_deps`-stanza:
   ...
 )
 ```
+
+### Limitations and Future Work
+
+- No support for input objects
+- No support for unions
+- No support for interfaces
+- No support for custom scalar types
+- Poor error handling
+- Error reporting should be improved
+- Path to JSON introspection query result is hardcoded to "schema.json"
+- Assumes the query has already been validated
