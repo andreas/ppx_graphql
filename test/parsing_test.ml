@@ -29,7 +29,7 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     let parsed = of_json response in
     Alcotest.(check (option int)) "nullable int" (Some 42) parsed#nullable_int;
     Alcotest.(check (option string)) "nullable string" (Some "42") parsed#nullable_string;
-    Alcotest.(check (option float)) "nullable float" (Some 42.0) parsed#nullable_float;
+    Alcotest.(check (option (float epsilon_float))) "nullable float" (Some 42.0) parsed#nullable_float;
     Alcotest.(check (option bool)) "nullable bool" (Some true) parsed#nullable_bool;
     Alcotest.(check (option string)) "nullable ID" (Some "42") parsed#nullable_id;
     Alcotest.(check (option color_enum)) "nullable enum" (Some `RED) parsed#nullable_enum;
@@ -56,7 +56,7 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     let parsed = of_json response in
     Alcotest.(check int) "non_nullable int" 42 parsed#non_nullable_int;
     Alcotest.(check string) "non_nullable string" "42" parsed#non_nullable_string;
-    Alcotest.(check float) "non_nullable float" 42.0 parsed#non_nullable_float;
+    Alcotest.(check (float epsilon_float)) "non_nullable float" 42.0 parsed#non_nullable_float;
     Alcotest.(check bool) "non_nullable bool" true parsed#non_nullable_bool;
     Alcotest.(check string) "non_nullable ID" "42" parsed#non_nullable_id;
     Alcotest.(check color_enum) "nullable enum" `GREEN parsed#non_nullable_enum;
@@ -83,7 +83,7 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     let parsed = of_json response in
     Alcotest.(check (option (list (option int)))) "list int" (Some [Some 1; Some 2]) parsed#list_int;
     Alcotest.(check (option (list (option string)))) "list string" (Some [Some "1"; Some "2"]) parsed#list_string;
-    Alcotest.(check (option (list (option float)))) "list float" (Some [Some 1.1; Some 2.2]) parsed#list_float;
+    Alcotest.(check (option (list (option (float epsilon_float))))) "list float" (Some [Some 1.1; Some 2.2]) parsed#list_float;
     Alcotest.(check (option (list (option bool)))) "list bool" (Some [Some false; Some true]) parsed#list_bool;
     Alcotest.(check (option (list (option string)))) "list ID" (Some [Some "1"; Some "2"]) parsed#list_id;
     Alcotest.(check (option (list (option color_enum)))) "list enum" (Some [Some `BLUE; Some `RED]) parsed#list_enum;
@@ -127,7 +127,7 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     Alcotest.(check int) "age" 30 parsed#person#age;
     Alcotest.(check string) "name" "John Doe" parsed#person#name;
     Alcotest.(check (option string)) "nickname" None parsed#person#nickname;
-    Alcotest.(check (option float)) "net_worth" (Some 1_000.0) parsed#person#net_worth;
+    Alcotest.(check (option (float epsilon_float))) "net_worth" (Some 1_000.0) parsed#person#net_worth;
     Alcotest.(check (option color_enum)) "favorite_color" (Some `BLUE) parsed#person#favorite_color;
     let Some friend0 = List.nth parsed#person#friends 0 in
     Alcotest.(check string) "friend id" "9" friend0#id;
@@ -146,5 +146,38 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     ]] in
     let parsed = of_json response in
     Alcotest.(check int) "alias" 42 parsed#alias;
+  );
+  ("union", `Quick, fun () ->
+    let _, _, of_json = [%graphql {|
+      query {
+        search(query: "foo") {
+          __typename
+
+          ... on Pet {
+            name
+          }
+
+          ... on Person {
+            id
+          }
+        }
+      }
+    |}] in
+    let response = `Assoc ["data", `Assoc [
+      "search", `List [
+        `Assoc [
+          "__typename", `String "Pet";
+          "name", `String "Fido";
+        ];
+        `Assoc [
+          "__typename", `String "Person";
+          "id", `Int 42;
+        ]
+      ]
+    ]] in
+    let parsed = of_json response in
+    let [`Pet pet; `Person person] = parsed#search in
+    Alcotest.(check string) "pet name" "Fido" pet#name;
+    Alcotest.(check string) "person id" "42" person#id
   );
 ]
