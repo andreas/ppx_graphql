@@ -27,26 +27,36 @@ let rec exprs_to_list = function
   | expr::exprs ->
       Ast_helper.Exp.(construct (lid "::") (Some (tuple [expr; exprs_to_list exprs])))
 
+let typename_field : Introspection.field =
+  {
+    name = "__typename";
+    args = [];
+    typ = NonNull(Type("String"));
+  }
+
 let select_field typ field_name =
-  let find_field type_name fields =
-    try
-      List.find (fun (field : Introspection.field) -> field.name = field_name) fields
-    with Not_found ->
-      failwithf "Invalid field `%s` for type `%s`" field_name type_name
-  in
-  match typ with
-  | Introspection.Object o ->
-      find_field o.name o.fields
-  | Introspection.Interface i ->
-      find_field i.name i.fields
-  | Introspection.Union u ->
-      failwith "Cannot select field from union"
-  | Introspection.Enum _ ->
-      failwith "Cannot select field from enum"
-  | Introspection.Scalar _ ->
-      failwith "Cannot select field from scalar"
-  | Introspection.InputObject _ ->
-      failwith "Cannot select field from input object"
+  if field_name = "__typename" then
+    typename_field
+  else
+    let find_field type_name fields =
+      try
+        List.find (fun (field : Introspection.field) -> field.name = field_name) fields
+      with Not_found ->
+        failwithf "Invalid field `%s` for type `%s`" field_name type_name
+    in
+    match typ with
+    | Introspection.Object o ->
+        find_field o.name o.fields
+    | Introspection.Interface i ->
+        find_field i.name i.fields
+    | Introspection.Union u ->
+        failwith "Cannot select field from union"
+    | Introspection.Enum _ ->
+        failwith "Cannot select field from enum"
+    | Introspection.Scalar _ ->
+        failwith "Cannot select field from scalar"
+    | Introspection.InputObject _ ->
+        failwith "Cannot select field from input object"
 
 let match_type_name type_name typ =
   match typ with
@@ -131,10 +141,10 @@ let rec resolve_type_ref : ctx -> Introspection.typ -> Graphql_parser.field -> I
               let methods = resolve_fields ctx obj fields in
               let convert_expr = Ast_helper.(Exp.object_ (Cstr.mk (Pat.any ()) methods)) in
               [%expr json |> to_option (fun json -> [%e convert_expr])]
+          | Introspection.Union u ->
+              convert_union ctx query_field u.possible_types
           | Introspection.Interface _ ->
               failwithf "Interface not supported yet"
-          | Introspection.Union _ ->
-              failwithf "Union not supported yet"
           | Introspection.InputObject _ ->
               failwithf "Input object `%s` cannot be used in selection set" type_name
           | exception Not_found ->
@@ -157,6 +167,23 @@ and resolve_field : ctx -> Introspection.typ -> Graphql_parser.field -> Parsetre
 and resolve_fields ctx obj fields : Parsetree.class_field list =
   List.map (resolve_field ctx obj) fields
   |> List.concat
+
+and convert_union ctx query_field possible_types =
+  let branches = List.map (fun type_name ->
+    let obj = List.find (match_type_name type_name) ctx.types in
+    let fields = collect_fields ctx type_name query_field.Graphql_parser.selection_set in
+    let methods = resolve_fields ctx obj fields in
+    let convert_expr = Ast_helper.(Exp.object_ (Cstr.mk (Pat.any ()) methods)) in
+    type_name, convert_expr
+  ) possible_types in
+  let default_case = Ast_helper.(Exp.case Pat.(any ()) [%expr failwith "Unknown __typename for union"]) in
+  let cases = List.fold_left (fun memo (type_name, convert_expr) ->
+    let pattern = Ast_helper.Pat.constant (Pconst_string (type_name, None)) in
+    let variant_expr = Ast_helper.Exp.variant type_name (Some convert_expr) in
+    let expr : Parsetree.expression = [%expr json |> to_option (fun json -> [%e variant_expr])] in
+    (Ast_helper.Exp.case pattern expr)::memo
+  ) [default_case] branches in
+  Ast_helper.Exp.match_ [%expr member "__typename" json |> to_string] cases
 
 let generate_parse_fn : Introspection.schema -> Graphql_parser.document -> Parsetree.expression =
   fun schema [Graphql_parser.Operation op] ->

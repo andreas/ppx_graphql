@@ -24,6 +24,12 @@ type Person {
     friends: [Person]!
 }
 
+type Pet {
+  name: String!
+}
+
+union SearchResult = Person | Pet
+
 type Query {
     # Nullable primitives
     nullable_int: Int
@@ -53,6 +59,8 @@ type Query {
     person: Person!
 
     filter_persons(filter: PersonFilter): [Person]!
+
+    search(query: String!): [SearchResult!]!
 }
 
 schema {
