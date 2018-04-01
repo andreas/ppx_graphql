@@ -4,6 +4,6 @@
  ((name ppx_graphql)
   (public_name ppx_graphql)
   (kind ppx_rewriter)
-  (libraries (ocaml-migrate-parsetree graphql rresult yojson))
+  (libraries (ocaml-migrate-parsetree graphql yojson))
   (ppx_runtime_libraries (yojson))
   (preprocess (pps (ppx_metaquot)))))
