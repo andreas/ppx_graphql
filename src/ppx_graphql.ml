@@ -101,6 +101,7 @@ let convert_scalar : string -> Parsetree.expression =
   | "Int" -> [%expr to_int_option]
   | "Boolean" -> [%expr to_bool_option]
   | "URI"
+  | "GitObjectID"
   | "String" -> [%expr to_string_option]
   | "Float" -> [%expr to_float_option]
   | "ID" -> [%expr function
