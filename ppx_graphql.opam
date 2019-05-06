@@ -5,10 +5,10 @@ homepage: "https://github.com/andreas/ppx_graphql"
 doc: "https://andreas.github.io/ppx_graphql/"
 bug-reports: "https://github.com/andreas/ppx_graphql/issues"
 dev-repo: "https://github.com/andreas/ppx_graphql.git"
-build: [["jbuilder" "build" "-p" name "-j" jobs]]
-build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
+build: [["dune" "build" "-p" name "-j" jobs]]
+build-test: [["dune" "runtest" "-p" name "-j" jobs]]
 depends: [
-  "jbuilder" {build}
+  "dune" {build & >= "1.0"}
   "graphql"
   "yojson"
   "ppx_metaquot"
