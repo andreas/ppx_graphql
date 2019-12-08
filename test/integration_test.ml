@@ -1,6 +1,6 @@
 open Test_helper
 
-let executable (query, variables, of_json) =
+let executable (_query, variables, of_json) =
   fun ~response ->
     variables (fun vars ->
       vars, of_json response

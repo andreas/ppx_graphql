@@ -49,7 +49,7 @@ let select_field typ field_name =
         find_field o.name o.fields
     | Introspection.Interface i ->
         find_field i.name i.fields
-    | Introspection.Union u ->
+    | Introspection.Union _ ->
         failwith "Cannot select field from union"
     | Introspection.Enum _ ->
         failwith "Cannot select field from enum"
@@ -233,7 +233,7 @@ let rec schema_typ_to_yojson ?(nullable=true) types typ value =
             scalar_to_yojson s.name
         | Introspection.Enum e ->
             enum_to_yojson e.enum_values
-        | Introspection.InputObject o ->
+        | Introspection.InputObject _ ->
             failwith "Input objects are not supported yet"
         | Introspection.Object _
         | Introspection.Interface _
@@ -303,11 +303,11 @@ let mapper _config _cookies =
   { default_mapper with
     expr = fun mapper expr ->
       match expr with
-      | { pexp_desc = Pexp_extension ({ txt = "graphql"; loc}, pstr)} ->
+      | { pexp_desc = Pexp_extension ({ txt = "graphql"; loc}, pstr); _ } ->
           begin match pstr with
             | PStr [{ pstr_desc =
                         Pstr_eval ({ pexp_loc  = loc;
-                                     pexp_desc = Pexp_constant (Pconst_string (query, _))}, _)}] ->
+                                     pexp_desc = Pexp_constant (Pconst_string (query, _)); _ }, _); _ }] ->
                 let query, variable_fn, parse_fn = generate loc query in
                 Ast_helper.Exp.tuple [const_string query; variable_fn; parse_fn]
             | _ ->
