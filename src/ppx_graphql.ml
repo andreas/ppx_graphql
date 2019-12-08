@@ -1,5 +1,5 @@
-open Migrate_parsetree
-open Ast_403
+module Location' = Location
+open Ppxlib
 
 module StringMap = Map.Make(String)
 
@@ -283,12 +283,11 @@ let generate_variable_fn : Introspection.schema -> Graphql_parser.document -> Pa
     | _ -> assert false
 
 let generate (loc : Location.t) query =
-  let schema_path = (Location.absolute_path loc.loc_start.pos_fname |> Filename.dirname) ^ "/schema.json" in
+  let schema_path = (Location'.absolute_path loc.loc_start.pos_fname |> Filename.dirname) ^ "/schema.json" in
   let schema = Introspection.of_file schema_path in
   match Graphql_parser.parse query with
   | Error err ->
-      let msg = Format.sprintf "Invalid GraphQL query: %s" err in
-      raise (Location.Error (Location.error ~loc msg))
+      Location.raise_errorf ~loc "Invalid GraphQL query: %s" err
   | Ok doc ->
       try
         Ast_helper.with_default_loc loc (fun () ->
@@ -296,28 +295,26 @@ let generate (loc : Location.t) query =
             let parse_fn = generate_parse_fn schema doc in
             query, variable_fn, parse_fn
           )
-      with Failure msg -> raise (Location.Error (Location.error ~loc msg))
+      with Failure msg -> Location.raise_errorf ~loc "%s" msg
 
-let mapper _config _cookies =
-  let default_mapper = Ast_mapper.default_mapper in
-  { default_mapper with
-    expr = fun mapper expr ->
-      match expr with
-      | { pexp_desc = Pexp_extension ({ txt = "graphql"; loc}, pstr); _ } ->
-          begin match pstr with
-            | PStr [{ pstr_desc =
-                        Pstr_eval ({ pexp_loc  = loc;
-                                     pexp_desc = Pexp_constant (Pconst_string (query, _)); _ }, _); _ }] ->
-                let query, variable_fn, parse_fn = generate loc query in
-                Ast_helper.Exp.tuple [const_string query; variable_fn; parse_fn]
-            | _ ->
-                raise (Location.Error (
-                    Location.error ~loc "[%graphql] accepts a string, e.g. [%graphql \"query { id }\"]"))
-          end
-      | other -> default_mapper.expr mapper other
-  }
+let mapper ~loc ~path:_ = function
+  | { pexp_desc = Pexp_constant (Pconst_string (query, _)); _ } ->
+            let query, variable_fn, parse_fn = generate loc query in
+            Ast_helper.Exp.tuple [const_string query; variable_fn; parse_fn]
+  | _ -> Location.raise_errorf ~loc "[%%graphql] accepts a string, e.g. [%%graphql \"query { id }\"]"
+
+let name = "graphql"
+
+let expr_rule =
+  Context_free.Rule.extension (
+    Extension.declare
+      name
+      Extension.Context.expression
+      Ast_pattern.(single_expr_payload __)
+      mapper
+  )
 
 let () =
-  Driver.register ~name:"ppx_graphql"
-    Versions.ocaml_403
-    mapper
+  Driver.register_transformation
+    ~rules:[expr_rule]
+    name
