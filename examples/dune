@@ -1,0 +1,8 @@
+(executable
+ (libraries lwt cohttp.lwt uri)
+ (preprocess
+  (pps ppx_graphql))
+ (preprocessor_deps
+  (file schema.json))
+ (modules github)
+ (name github))
