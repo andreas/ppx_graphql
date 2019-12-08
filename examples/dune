@@ -1,5 +1,5 @@
 (executable
- (libraries lwt cohttp-lwt cohttp-lwt-unix uri)
+ (libraries lwt cohttp-lwt cohttp-lwt-unix uri tls)
  (preprocess
   (pps ppx_graphql))
  (preprocessor_deps
