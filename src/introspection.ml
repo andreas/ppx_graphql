@@ -2,13 +2,24 @@ type enum_value = {
     name : string;
 }
 
+type type_ref =
+  | List of type_ref
+  | NonNull of type_ref
+  | Type of string
+
+type input_value = {
+  name : string;
+  typ : type_ref;
+  default_value : string option;
+}
+
 type field = {
     name : string;
     args : input_value list;
     typ : type_ref;
 }
 
-and typ =
+type typ =
     | Object of {
         name : string;
         fields : field list;
@@ -34,17 +45,6 @@ and typ =
         name : string;
         input_fields : input_value list;
       }
-
-and input_value = {
-    name : string;
-    typ : type_ref;
-    default_value : string option;
-}
-
-and type_ref =
-  | List of type_ref
-  | NonNull of type_ref
-  | Type of string
 
 type schema = {
     query_type : string;

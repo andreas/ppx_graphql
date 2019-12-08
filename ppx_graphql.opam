@@ -1,16 +1,23 @@
-opam-version: "1.2"
+opam-version: "2.0"
 maintainer: "Andreas Garnaes <andreas.garnaes@gmail.com>"
 authors: "Andreas Garnaes <andreas.garnaes@gmail.com>"
 homepage: "https://github.com/andreas/ppx_graphql"
 doc: "https://andreas.github.io/ppx_graphql/"
 bug-reports: "https://github.com/andreas/ppx_graphql/issues"
-dev-repo: "https://github.com/andreas/ppx_graphql.git"
-build: [["jbuilder" "build" "-p" name "-j" jobs]]
-build-test: [["jbuilder" "runtest" "-p" name "-j" jobs]]
+dev-repo: "git+https://github.com/andreas/ppx_graphql.git"
+
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+
 depends: [
-  "jbuilder" {build}
+  "dune" {>= "2.0"}
   "graphql"
   "yojson"
-  "ppx_metaquot"
-  "alcotest" {test & >= "0.4.5"}
+  "ppxlib"
+  "alcotest" {with-test & >= "0.4.5"}
 ]
+
+synopsis: "Type-safe GraphQL queries in OCaml"
