@@ -16,7 +16,7 @@ depends: [
   "dune" {>= "2.0"}
   "graphql"
   "yojson"
-  "ppx_metaquot"
+  "ppxlib"
   "alcotest" {with-test & >= "0.4.5"}
 ]
 

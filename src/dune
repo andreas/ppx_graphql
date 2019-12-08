@@ -2,7 +2,7 @@
  (name ppx_graphql)
  (public_name ppx_graphql)
  (kind ppx_rewriter)
- (libraries ocaml-migrate-parsetree graphql yojson)
+ (libraries ppxlib ocaml-migrate-parsetree graphql yojson)
  (ppx_runtime_libraries yojson)
  (preprocess
-  (pps ppx_metaquot)))
+  (pps ppxlib.metaquot)))
