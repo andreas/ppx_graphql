@@ -129,7 +129,10 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
     Alcotest.(check (option string)) "nickname" None parsed#person#nickname;
     Alcotest.(check (option (float epsilon_float))) "net_worth" (Some 1_000.0) parsed#person#net_worth;
     Alcotest.(check (option color_enum)) "favorite_color" (Some `BLUE) parsed#person#favorite_color;
-    let Some friend0 = List.nth parsed#person#friends 0 in
+    let friend0 = match List.nth parsed#person#friends 0 with
+      | Some f -> f
+      | None -> assert false
+    in
     Alcotest.(check string) "friend id" "9" friend0#id;
     Alcotest.(check (option color_enum)) "friend color" None friend0#favorite_color;
     let friend1 = List.nth parsed#person#friends 1 in
@@ -176,7 +179,10 @@ let suite : (string * [>`Quick] * (unit -> unit)) list = [
       ]
     ]] in
     let parsed = of_json response in
-    let [`Pet pet; `Person person] = parsed#search in
+    let (pet, person) = match parsed#search with
+      | [`Pet pet; `Person person] -> (pet, person)
+      | _ -> assert false
+    in
     Alcotest.(check string) "pet name" "Fido" pet#name;
     Alcotest.(check string) "person id" "42" person#id
   );
